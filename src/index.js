@@ -1,5 +1,5 @@
-import * as THREE from './lib/three.js-master/build/three.module';
-import { OrbitControls } from './lib/three.js-master/examples/jsm/controls/OrbitControls'
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import './lib/jm-controls';
 import { toRadians, map_range } from './lib/jm-math';
