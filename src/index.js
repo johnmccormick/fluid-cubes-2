@@ -4,19 +4,27 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import './lib/jm-controls';
 import { toRadians, map_range } from './lib/jm-math';
 
-function createCubeMesh(x, y, z, index) {
+function createCubeMesh(x, y, z, color = null) {
     var geometry = new THREE.BoxGeometry(x, y, z);
-    var material = new THREE.MeshBasicMaterial({ color: 0x03bb85 + index });
+    var material = new THREE.MeshPhongMaterial();
+    material.color = color || baseColor;
+
     var cube = new THREE.Mesh(geometry, material);
     return cube;
 }
 
 function reconstruct() {
     if (group) {
-        group.children.forEach(element => {
-            scene.remove(element);
-        });
         scene.remove(group);
+        const groupCount = group.children.length;
+        for (var i = groupCount - 1; i >= 0; i--) {
+            const child = group.children[i];
+            if (child.isMesh) {
+                child.geometry.dispose();
+                child.material.dispose();
+            }
+            group.remove(child);
+        };
     }
 
     cubes = new Array(blocks.width)
@@ -24,15 +32,22 @@ function reconstruct() {
         cubes[i] = new Array(blocks.height)
     }
 
-    var padding = 0.5;
+    centerPoint = new THREE.Vector3(blocks.width / 2, -1, -blocks.height / 2);
+
+    var padding = 0.4;
     for (var i = 0; i < blocks.width; i++) {
         for (var j = 0; j < blocks.height; j++) {
-            var cube = createCubeMesh(1 - padding, 1 - padding, 1 - padding, (i * blocks.height) + j)
+            const x = i
+            const y = 0;
+            const z = -j;
+
+            var cube = createCubeMesh(1 - padding, 1 - padding, 1 - padding)
+
             cube.rotation.x += toRadians(90);
             cube.position.y -= 1;
 
-            cube.position.x = i
-            cube.position.z = -j
+            cube.position.x = x
+            cube.position.z = z
 
             cubes[i][j] = cube;
             group.add(cubes[i][j])
@@ -54,7 +69,9 @@ function reconstruct() {
     // camera.position.x = blocks.width / 2;
     // camera.position.y = blocks.height / 4;
 
-    centerPoint = new THREE.Vector3(blocks.width / 2, -1, -blocks.height / 2);
+    controls.target.set(blocks.width / 2, 0, - blocks.width / 2);
+    let furthestCubeVector = new THREE.Vector3(0, -1, 0);
+    maxDistance = furthestCubeVector.distanceTo(centerPoint);
 }
 
 
@@ -66,7 +83,12 @@ window.onresize = () => {
     // camera.top = frustumSize / 2;
     // camera.bottom = - frustumSize / 2;
 
-    camera.updateProjectionMatrix();
+    // camera.updateProjectionMatrix();
+
+    aspect = window.innerWidth / window.innerHeight;
+
+    camera.aspect = aspect;
+
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -95,23 +117,40 @@ window.wallpaperPropertyListener = {
 
 const canvas = document.querySelector('#canvas-1');
 const renderer = new THREE.WebGLRenderer({ canvas });
+const blocks = { width: 16, height: 16 }
 
 const fov = 75;
-const aspect = 2;  // the canvas default
+let aspect = window.innerWidth / window.innerHeight;
+// const aspect = 2;  // the canvas default
 const near = 0.1;
-const far = 100;
+const far = maxDistance;
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
-camera.position.z = 25;
+camera.position.z = blocks.width * 0.725;
+camera.position.y = 10;
 
 const scene = new THREE.Scene();
 const group = new THREE.Group();
 
-const blocks = { width: 16, height: 16 }
-// var aspect = window.innerWidth / window.innerHeight;
 // var frustumSize = 20;
 
+// const baseHex =  0x03bb85;
+// const targetHex =  0xec33a3;
+let targetHex = 0x00f0ff;
+let baseHex = 0xffff44
+let baseColor = new THREE.Color(baseHex)
+let storedBaseColor = new THREE.Color(baseColor.getHex())
+let targetColor = new THREE.Color(targetHex)
+let storedTargetColor = new THREE.Color(targetHex)
+let nextColor = new THREE.Color();
+nextColor.r = Math.random()
+nextColor.g = Math.random()
+nextColor.b = Math.random()
+// const targetColor = new THREE.Color( 0x44ff44 )
+
 const controls = new OrbitControls(camera, canvas);
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1;
 
 controls.target.set(blocks.width / 2, 0, - blocks.width / 2);
 controls.update();
@@ -119,25 +158,43 @@ controls.update();
 var running = false;
 let cubes;
 var zoom = 5;
-var cameraPadding = 10;
 var centerPoint;
-var speed = 2;
+let speed = 2;
+let maxDistance;
+let stiffness = 4;
 
 function start() {
-
-    reconstruct();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    var directionalLights = [new THREE.DirectionalLight(0xffffff, 0.5), new THREE.DirectionalLight(0xffffff, 0.5), new THREE.DirectionalLight(0xffffff, 0.5)];
-    scene.add(directionalLights[0]);
+    // {
+    //     const color = 0xFFFFFF;
+    //     const intensity = 0.41;
+    //     const light = new THREE.AmbientLight(color, intensity);
+    //     scene.add(light);
+    // }
 
-    directionalLights[0].position.y += 2
+    // const near = 1;
+    // const far = 1.5;
+    // const color = 'lightblue';
+    // scene.fog = new THREE.Fog(color, near, far);
+    // scene.background = new THREE.Color(color);
+
+    // scene.background = new THREE.Color(0xff0000);
+
+    var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    // directionalLight.target = centerPoint
+    scene.add(directionalLight);
+    directionalLight.position.y += 2
 
     running = true;
     var clock = new THREE.Clock()
     var deltaTotal = 0;
+
+    let colorChangeInterval = 0;
+    const colorChangeIntervalLimit = 5;
+    let colorChangeTimeFraction = 0;
 
     function animate() {
         if (running == true) {
@@ -147,21 +204,56 @@ function start() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
 
+            controls.update();
+
+            colorChangeInterval = colorChangeInterval += deltaTime
+            if (colorChangeInterval >= colorChangeIntervalLimit) {
+                debugger
+                colorChangeInterval -= colorChangeIntervalLimit;
+                baseColor = storedTargetColor;
+                storedBaseColor = new THREE.Color(baseColor.getHex())
+                targetColor = nextColor;
+                storedTargetColor = targetColor;
+                nextColor = new THREE.Color(nextColor.getHex());
+
+                const rgorb = Math.random() * 3;
+                if (rgorb < 1) {
+                nextColor.r = Math.random()
+                } else if (rgorb < 2) {
+                nextColor.g = Math.random()
+                } else {
+                nextColor.b = Math.random()
+                }
+                colorChangeTimeFraction = 0
+            }
+
+            colorChangeTimeFraction = colorChangeTimeFraction + (deltaTime / colorChangeIntervalLimit);
+            const baseColorToLerp = new THREE.Color(storedBaseColor.getHex())
+            baseColor = baseColorToLerp.lerp(storedTargetColor, colorChangeTimeFraction)
+
+            const targetColorToLerp = new THREE.Color(storedTargetColor.getHex())
+            targetColor = targetColorToLerp.lerp(nextColor, colorChangeTimeFraction)
+
             for (let y = 0; y < blocks.height; y++) {
                 for (let x = 0; x < blocks.width; x++) {
                     let cubePos = cubes[x][y].position;
                     let cubePosVector = new THREE.Vector3(cubePos.x, cubePos.y, cubePos.z);
                     let distanceFromCenter = cubePosVector.distanceTo(centerPoint);
 
-                    let delta = Math.sin(deltaTotal / 20);
-                    let differenceDelta = map_range(delta, -1, 1, 2, 7)
+                    const relativeDelta = deltaTotal * -speed;
 
-                    let distanceRemapped = map_range(distanceFromCenter, 0, 20, -differenceDelta, differenceDelta)
+                    const minHeight = 2;
+                    const maxHeight = maxDistance;
 
-                    let sin = Math.sin((deltaTotal * -1 * speed) + distanceRemapped);
-                    let size = map_range(sin, -1, 1, 10, 30)
+                    const distanceFraction = map_range(distanceFromCenter * stiffness, 0, maxDistance, -1, 1);
+                    const resultFraction = Math.sin(distanceFraction + relativeDelta);
+                    const result = map_range(resultFraction, -1, 1, minHeight, maxHeight)
 
-                    cubes[x][y].scale.z = size;
+                    cubes[x][y].scale.z = result;
+
+                    const newColor = new THREE.Color(baseColor.getHex())
+                    const absFraction = (resultFraction / 2) + 0.5;
+                    cubes[x][y].material.color = newColor.lerp(targetColor, resultFraction);
                 }
             }
         }
@@ -178,23 +270,36 @@ blocks.width = parseInt(cubeDepthSlider.value);
 blocks.height = parseInt(cubeDepthSlider.value);
 reconstruct()
 
+cubeDepthSlider.oninput = function () {
+    cubeDepthOutput.innerHTML = this.value;
+    blocks.width = parseInt(this.value);
+    blocks.height = parseInt(this.value);
+    debugger
+    reconstruct()
+}
+
 var speedSlider = document.getElementById("speed-slider");
 var speedOutput = document.getElementById("speed-output");
 var speedSliderValue = speedSlider.value / 1000;
 speedOutput.innerHTML = speedSliderValue;
 speed = speedSliderValue;
 
-cubeDepthSlider.oninput = function () {
-    cubeDepthOutput.innerHTML = this.value;
-    blocks.width = parseInt(this.value);
-    blocks.height = parseInt(this.value);
-    reconstruct()
-}
-
 speedSlider.oninput = function () {
     var value = this.value / 1000;
     speedOutput.innerHTML = value;
     speed = value;
+}
+
+var stiffnessSlider = document.getElementById("stiffness-slider");
+var stiffnessOutput = document.getElementById("stiffness-output");
+var stiffnessSliderValue = stiffnessSlider.value;
+stiffnessOutput.innerHTML = stiffnessSliderValue;
+stiffness = stiffnessSliderValue;
+
+stiffnessSlider.oninput = function () {
+    var value = this.value;
+    stiffnessOutput.innerHTML = value;
+    stiffness = value;
 }
 
 function changeToggleablePanels(opacity) {
