@@ -34,7 +34,7 @@ function reconstruct() {
 
     centerPoint = new THREE.Vector3(blocks.width / 2, -1, -blocks.height / 2);
 
-    var padding = 0.4;
+    var padding = 0.0;
     for (var i = 0; i < blocks.width; i++) {
         for (var j = 0; j < blocks.height; j++) {
             const x = i
@@ -83,11 +83,11 @@ window.onresize = () => {
     // camera.top = frustumSize / 2;
     // camera.bottom = - frustumSize / 2;
 
-    // camera.updateProjectionMatrix();
-
+    
     aspect = window.innerWidth / window.innerHeight;
-
+    
     camera.aspect = aspect;
+    camera.updateProjectionMatrix();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
@@ -143,9 +143,9 @@ let storedBaseColor = new THREE.Color(baseColor.getHex())
 let targetColor = new THREE.Color(targetHex)
 let storedTargetColor = new THREE.Color(targetHex)
 let nextColor = new THREE.Color();
-nextColor.r = Math.random()
-nextColor.g = Math.random()
-nextColor.b = Math.random()
+nextColor.r = 0.5 + (Math.random() / 2)
+nextColor.g = 0.5 + (Math.random() / 2)
+nextColor.b = 0.5 + (Math.random() / 2)
 // const targetColor = new THREE.Color( 0x44ff44 )
 
 const controls = new OrbitControls(camera, canvas);
@@ -195,7 +195,7 @@ function start() {
     var deltaTotal = 0;
 
     let colorChangeInterval = 0;
-    const colorChangeIntervalLimit = 5;
+    let colorChangeIntervalLimit = 8;
     let colorChangeTimeFraction = 0;
 
     function animate() {
@@ -209,7 +209,7 @@ function start() {
             controls.update();
 
             if (cycleColors) {
-                colorChangeInterval = colorChangeInterval += deltaTime
+                colorChangeInterval = colorChangeInterval += (deltaTime * speed)
                 if (colorChangeInterval >= colorChangeIntervalLimit) {
                     colorChangeInterval -= colorChangeIntervalLimit;
                     baseColor = storedTargetColor;
@@ -219,17 +219,22 @@ function start() {
                     nextColor = new THREE.Color(nextColor.getHex());
 
                     const rgorb = Math.random() * 3;
+                    const colorFraction = 0.5 + (Math.random() / 2);
                     if (rgorb < 1) {
-                        nextColor.r = Math.random()
+                        if (nextColor.b > 0.5) nextColor.r = Math.random()
+                        else nextColor.r = colorFraction
                     } else if (rgorb < 2) {
-                        nextColor.g = Math.random()
+                        if (nextColor.r > 0.5) nextColor.g = Math.random()
+                        else nextColor.g = colorFraction
                     } else {
-                        nextColor.b = Math.random()
+                        if (nextColor.g > 0.5) nextColor.b = Math.random()
+                        else nextColor.b = colorFraction
                     }
                     colorChangeTimeFraction = 0
+                    colorChangeIntervalLimit = parseInt(Math.random() * 9) + 3;
                 }
 
-                colorChangeTimeFraction = colorChangeTimeFraction + (deltaTime / colorChangeIntervalLimit);
+                colorChangeTimeFraction = colorChangeTimeFraction + ((deltaTime * speed) / colorChangeIntervalLimit);
                 const baseColorToLerp = new THREE.Color(storedBaseColor.getHex())
                 baseColor = baseColorToLerp.lerp(storedTargetColor, colorChangeTimeFraction)
 
@@ -245,19 +250,19 @@ function start() {
 
                     const relativeDelta = deltaTotal * -speed;
 
-                    const minHeight = 2;
-                    const maxHeight = maxDistance;
-
-                    const distanceFraction = map_range(distanceFromCenter * stiffness, 0, maxDistance, -1, 1);
+                    const distanceFraction = map_range(distanceFromCenter * distanceFromCenter * stiffness, 0, maxDistance, -1, 1);
                     const resultFraction = Math.sin(distanceFraction + relativeDelta);
+                    
+                    const minHeight = 2;
+                    const maxHeight = 10;
+                    
                     const result = map_range(resultFraction, -1, 1, minHeight, maxHeight)
-
                     cubes[x][y].scale.z = result;
 
                     if (cycleColors) {
                         const newColor = new THREE.Color(baseColor.getHex())
-                        // const absFraction = (resultFraction / 2) + 0.5;
-                        cubes[x][y].material.color = newColor.lerp(targetColor, resultFraction);
+                        const absFraction = (resultFraction / 2) + 0.5;
+                        cubes[x][y].material.color = newColor.lerp(targetColor, absFraction);
                     }
                 }
             }
@@ -297,14 +302,14 @@ speedSlider.oninput = function () {
 
 var stiffnessSlider = document.getElementById("stiffness-slider");
 var stiffnessOutput = document.getElementById("stiffness-output");
-var stiffnessSliderValue = stiffnessSlider.value;
+var stiffnessSliderValue = stiffnessSlider.value / 1000;
 stiffnessOutput.innerHTML = stiffnessSliderValue;
-stiffness = stiffnessSliderValue;
+stiffness = 1 / stiffnessSliderValue;
 
 stiffnessSlider.oninput = function () {
-    var value = this.value;
+    var value = this.value / 1000;
     stiffnessOutput.innerHTML = value;
-    stiffness = 8 / value;
+    stiffness = 1 / value;
 }
 
 
