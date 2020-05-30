@@ -163,6 +163,8 @@ let speed = 2;
 let maxDistance;
 let stiffness = 4;
 
+let cycleColors = true;
+
 function start() {
 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -206,33 +208,34 @@ function start() {
 
             controls.update();
 
-            colorChangeInterval = colorChangeInterval += deltaTime
-            if (colorChangeInterval >= colorChangeIntervalLimit) {
-                debugger
-                colorChangeInterval -= colorChangeIntervalLimit;
-                baseColor = storedTargetColor;
-                storedBaseColor = new THREE.Color(baseColor.getHex())
-                targetColor = nextColor;
-                storedTargetColor = targetColor;
-                nextColor = new THREE.Color(nextColor.getHex());
+            if (cycleColors) {
+                colorChangeInterval = colorChangeInterval += deltaTime
+                if (colorChangeInterval >= colorChangeIntervalLimit) {
+                    colorChangeInterval -= colorChangeIntervalLimit;
+                    baseColor = storedTargetColor;
+                    storedBaseColor = new THREE.Color(baseColor.getHex())
+                    targetColor = nextColor;
+                    storedTargetColor = targetColor;
+                    nextColor = new THREE.Color(nextColor.getHex());
 
-                const rgorb = Math.random() * 3;
-                if (rgorb < 1) {
-                nextColor.r = Math.random()
-                } else if (rgorb < 2) {
-                nextColor.g = Math.random()
-                } else {
-                nextColor.b = Math.random()
+                    const rgorb = Math.random() * 3;
+                    if (rgorb < 1) {
+                        nextColor.r = Math.random()
+                    } else if (rgorb < 2) {
+                        nextColor.g = Math.random()
+                    } else {
+                        nextColor.b = Math.random()
+                    }
+                    colorChangeTimeFraction = 0
                 }
-                colorChangeTimeFraction = 0
+
+                colorChangeTimeFraction = colorChangeTimeFraction + (deltaTime / colorChangeIntervalLimit);
+                const baseColorToLerp = new THREE.Color(storedBaseColor.getHex())
+                baseColor = baseColorToLerp.lerp(storedTargetColor, colorChangeTimeFraction)
+
+                const targetColorToLerp = new THREE.Color(storedTargetColor.getHex())
+                targetColor = targetColorToLerp.lerp(nextColor, colorChangeTimeFraction)
             }
-
-            colorChangeTimeFraction = colorChangeTimeFraction + (deltaTime / colorChangeIntervalLimit);
-            const baseColorToLerp = new THREE.Color(storedBaseColor.getHex())
-            baseColor = baseColorToLerp.lerp(storedTargetColor, colorChangeTimeFraction)
-
-            const targetColorToLerp = new THREE.Color(storedTargetColor.getHex())
-            targetColor = targetColorToLerp.lerp(nextColor, colorChangeTimeFraction)
 
             for (let y = 0; y < blocks.height; y++) {
                 for (let x = 0; x < blocks.width; x++) {
@@ -251,9 +254,11 @@ function start() {
 
                     cubes[x][y].scale.z = result;
 
-                    const newColor = new THREE.Color(baseColor.getHex())
-                    const absFraction = (resultFraction / 2) + 0.5;
-                    cubes[x][y].material.color = newColor.lerp(targetColor, resultFraction);
+                    if (cycleColors) {
+                        const newColor = new THREE.Color(baseColor.getHex())
+                        // const absFraction = (resultFraction / 2) + 0.5;
+                        cubes[x][y].material.color = newColor.lerp(targetColor, resultFraction);
+                    }
                 }
             }
         }
@@ -299,15 +304,22 @@ stiffness = stiffnessSliderValue;
 stiffnessSlider.oninput = function () {
     var value = this.value;
     stiffnessOutput.innerHTML = value;
-    stiffness = value;
+    stiffness = 8 / value;
 }
 
-function changeToggleablePanels(opacity) {
-    var length = toggleablePanels.length;
-    for (var i = 0; i < length; i++) {
 
-        toggleablePanels[i].style.opacity = opacity;
-    };
+var cycleColorsCheckbox = document.getElementById("cycle-colors-checkbox");
+cycleColors = cycleColorsCheckbox.checked;
+
+cycleColorsCheckbox.onclick = function () {
+    cycleColors = cycleColorsCheckbox.checked;
+}
+
+var autoRotateCheckbox = document.getElementById("auto-rotate-checkbox");
+controls.autoRotate = autoRotateCheckbox.checked;
+
+autoRotateCheckbox.onclick = function () {
+    controls.autoRotate = autoRotateCheckbox.checked;
 }
 
 var slidersHideTimeout;
@@ -321,6 +333,14 @@ panelVisibleCheckbox.onclick = function () {
         changeToggleablePanels(1);
         clearTimeout(slidersHideTimeout);
     }
+}
+
+function changeToggleablePanels(opacity) {
+    var length = toggleablePanels.length;
+    for (var i = 0; i < length; i++) {
+
+        toggleablePanels[i].style.opacity = opacity;
+    };
 }
 
 document.addEventListener("mousemove", function () {
