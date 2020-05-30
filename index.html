@@ -29,6 +29,10 @@
             transition: 0.1s;
         }
 
+        .checkbox-container > div {
+            margin-top: 5px;
+        }
+
         #info-panel {
             margin: 5px;
         }
@@ -61,8 +65,20 @@
             <input type="range" min="1" max="10000" value="2000" class="slider" id="speed-slider">
             <label>Stiffness: <span id="stiffness-output"></span></label>
             <input type="range" min="1" max="8" value="4" class="slider" id="stiffness-slider">
-            <div><input type="checkbox" id="panel-visible-checkbox"><label for="panel-visible-checkbox">Keep panel
-                    visible</label></div>
+            <div class="checkbox-container">
+                <div>
+                    <input type="checkbox" checked id="cycle-colors-checkbox">
+                    <label for="cycle-colors-checkbox">Cycle colors</label>
+                </div>
+                <div>
+                    <input type="checkbox" checked id="auto-rotate-checkbox">
+                    <label for="auto-rotate-checkbox">Auto rotate</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="panel-visible-checkbox">
+                    <label for="panel-visible-checkbox">Keep panelvisible</label>
+                </div>
+            </div>
             <!-- <div><input type="checkbox" id="frame-rate-checkbox"><label for="frame-rate-checkbox">Show frame
                 rate</label></div> -->
         </div>
@@ -73,4 +89,5 @@
     </div>
 </body>
 <script src="./main.js" type="module"></script>
+
 </html>
