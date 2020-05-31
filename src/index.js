@@ -231,7 +231,7 @@ function start() {
                         else nextColor.b = colorFraction
                     }
                     colorChangeTimeFraction = 0
-                    colorChangeIntervalLimit = parseInt(Math.random() * 9) + 3;
+                    colorChangeIntervalLimit = parseInt(Math.random() * 21) + 7;
                 }
 
                 colorChangeTimeFraction = colorChangeTimeFraction + ((deltaTime * speed) / colorChangeIntervalLimit);
@@ -261,7 +261,7 @@ function start() {
 
                     if (cycleColors) {
                         const newColor = new THREE.Color(baseColor.getHex())
-                        const absFraction = (resultFraction / 2) + 0.5;
+                        const absFraction =  Math.sin(distanceFraction + relativeDelta);
                         cubes[x][y].material.color = newColor.lerp(targetColor, absFraction);
                     }
                 }
