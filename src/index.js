@@ -189,7 +189,20 @@ const resetSize = () => {
   }
 }
 
-const options = { speed: 2, stiffness: 1 / 6, cycleColors: true, changeBackgroundColor, changeZoom, storeBaseColor, storeTargetColor, changeAmbientLight, resetSize, mode: Modes.Original }
+const options = {
+  speed: 2,
+  stiffness: 1 / 6,
+  cycleColors: true,
+  mode: Modes.Original,
+  minHeight: 2,
+  maxHeight: 10,
+  changeBackgroundColor,
+  changeZoom,
+  storeBaseColor,
+  storeTargetColor,
+  changeAmbientLight,
+  resetSize,
+}
 
 controls.target.set(blocks.width / 2, 0, - blocks.width / 2);
 controls.update();
@@ -223,7 +236,7 @@ function start() {
   let colorChangeTimeFraction = 0;
 
   function animate() {
-    const { speed, stiffness, cycleColors } = options;
+    const { speed, stiffness, cycleColors, minHeight, maxHeight, mode } = options;
     if (running == true) {
       var deltaTime = clock.getDelta();
       deltaTotal += deltaTime;
@@ -277,14 +290,10 @@ function start() {
 
           const distanceFraction = map_range(distanceFromCenter * distanceFromCenter * stiffness, 0, maxDistance, -1, 1);
           const resultFraction = Math.sin(distanceFraction + relativeDelta);
-
-          const minHeight = 2;
-          const maxHeight = 10;
-
           const result = map_range(resultFraction, -1, 1, minHeight, maxHeight)
 
-          if (options.mode === Modes.Original) cubes[x][y].scale.z = result;
-          if (options.mode === Modes.Position) cubes[x][y].position.y = result;
+          if (mode === Modes.Original) cubes[x][y].scale.z = result;
+          if (mode === Modes.Position) cubes[x][y].position.y = result;
 
           const newColor = new THREE.Color(baseColor.getHex())
           const absFraction = Math.sin(distanceFraction + relativeDelta);

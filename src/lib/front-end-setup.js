@@ -1,6 +1,6 @@
 export default (reconstruct, blocks, controls, options) => {
   var toggleablePanels = document.getElementsByClassName("toggleable");
-  
+
   if (toggleablePanels.length > 0) {
     var toggleablePanels = document.getElementsByClassName("toggleable");
     var cubeDepthSlider = document.getElementById("cube-depth-slider");
@@ -40,17 +40,41 @@ export default (reconstruct, blocks, controls, options) => {
       stiffnessOutput.innerHTML = value;
       options.stiffness = 1 / value;
     }
-    
+
     var ambientLightSlider = document.getElementById("ambient-light-slider");
     var ambientLightOutput = document.getElementById("ambient-light-output");
     var ambientLightSliderValue = ambientLightSlider.value / 100;
     ambientLightOutput.innerHTML = ambientLightSliderValue;
     options.changeAmbientLight({ intensity: ambientLightSliderValue });
-    
+
     ambientLightSlider.oninput = function () {
       var value = this.value / 100;
       ambientLightOutput.innerHTML = value;
-      options.changeAmbientLight({intensity: value});
+      options.changeAmbientLight({ intensity: value });
+    }
+
+    var minHeightSlider = document.getElementById("min-height-slider");
+    var minHeightOutput = document.getElementById("min-height-output");
+    var minHeightSliderValue = parseInt(minHeightSlider.value);
+    minHeightOutput.innerHTML = minHeightSliderValue;
+    options.minHeight = minHeightSliderValue;
+
+    minHeightSlider.oninput = function () {
+      var value = parseInt(this.value);
+      minHeightOutput.innerHTML = value;
+      options.minHeight = value;
+    }
+
+    var maxHeightSlider = document.getElementById("max-height-slider");
+    var maxHeightOutput = document.getElementById("max-height-output");
+    var maxHeightSliderValue = maxHeightSlider.value;
+    maxHeightOutput.innerHTML = maxHeightSliderValue;
+    options.maxHeight = maxHeightSliderValue;
+
+    maxHeightSlider.oninput = function () {
+      var value = parseInt(this.value);
+      maxHeightOutput.innerHTML = value;
+      options.maxHeight = value;
     }
 
     var cycleColorsCheckbox = document.getElementById("cycle-colors-checkbox");
