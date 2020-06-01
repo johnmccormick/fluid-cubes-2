@@ -6,12 +6,20 @@ import { toRadians, map_range } from './lib/jm-math';
 import frontEndSetup from './lib/front-end-setup';
 import wallpaperEngineListeners from './lib/wallpaper-engine-listeners';
 
-function createCubeMesh(x, y, z, color = null) {
-  var geometry = new THREE.BoxGeometry(x, y, z);
-  var material = new THREE.MeshPhongMaterial();
+const Shapes = {
+  Cube: 0,
+  Sphere: 1,
+}
+
+function createShape(x, y, z, shape, color = null) {
+  let geometry;
+  if (shape == Shapes.Cube) geometry = new THREE.BoxGeometry(x, y, z);
+  else geometry = new THREE.SphereGeometry(x / 2, 32, 32);
+
+  let material = new THREE.MeshPhongMaterial();
   material.color = color || baseColor;
 
-  var cube = new THREE.Mesh(geometry, material);
+  let cube = new THREE.Mesh(geometry, material);
   return cube;
 }
 
@@ -43,7 +51,9 @@ function reconstruct() {
       const y = 0;
       const z = -j;
 
-      var cube = createCubeMesh(1 - padding, 1 - padding, 1 - padding)
+      const shape = options.mode != Modes.PositionSphere ? Shapes.Cube : Shapes.Sphere;
+
+      var cube = createShape(1 - padding, 1 - padding, 1 - padding, shape)
 
       cube.rotation.x += toRadians(90);
       cube.position.y -= 1;
@@ -149,7 +159,37 @@ const storeTargetColor = (value) => {
   targetColor = new THREE.Color(value)
 }
 
-const options = { speed: 2, stiffness: 1 / 6, cycleColors: true, changeBackgroundColor, changeZoom, storeBaseColor, storeTargetColor }
+const createAmbientLight = () => {
+  const color = 0xFFFFFF;
+  const intensity = 0.41;
+  const ambientLight = new THREE.AmbientLight(color, intensity);
+  return ambientLight
+}
+
+const ambientLight = createAmbientLight();
+scene.add(ambientLight);
+
+const changeAmbientLight = ({ intensity, color }) => {
+  if (intensity) ambientLight.intensity = intensity;
+  if (color) ambientLight.color = color;
+}
+
+const Modes = {
+  Original: 0,
+  Position: 1,
+  PositionSphere: 2,
+}
+
+const resetSize = () => {
+  for (let i = 0; i < blocks.width; i++) {
+    for (let j = 0; j < blocks.height; j++) {
+      cubes[i][j].scale.z = 1;
+      cubes[i][j].position.y = 0;
+    }
+  }
+}
+
+const options = { speed: 2, stiffness: 1 / 6, cycleColors: true, changeBackgroundColor, changeZoom, storeBaseColor, storeTargetColor, changeAmbientLight, resetSize, mode: Modes.Original }
 
 controls.target.set(blocks.width / 2, 0, - blocks.width / 2);
 controls.update();
@@ -164,13 +204,6 @@ function start() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // {
-  //     const color = 0xFFFFFF;
-  //     const intensity = 0.41;
-  //     const light = new THREE.AmbientLight(color, intensity);
-  //     scene.add(light);
-  // }
-
   // const near = 1;
   // const far = 1.5;
   // const color = 'lightblue';
@@ -178,7 +211,6 @@ function start() {
   // scene.background = new THREE.Color(color);
 
   var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  // directionalLight.target = centerPoint
   scene.add(directionalLight);
   directionalLight.position.y += 2
 
@@ -238,7 +270,7 @@ function start() {
       for (let y = 0; y < blocks.height; y++) {
         for (let x = 0; x < blocks.width; x++) {
           let cubePos = cubes[x][y].position;
-          let cubePosVector = new THREE.Vector3(cubePos.x, cubePos.y, cubePos.z);
+          let cubePosVector = new THREE.Vector3(cubePos.x, -1, cubePos.z);
           let distanceFromCenter = cubePosVector.distanceTo(centerPoint);
 
           const relativeDelta = deltaTotal * -speed;
@@ -250,7 +282,9 @@ function start() {
           const maxHeight = 10;
 
           const result = map_range(resultFraction, -1, 1, minHeight, maxHeight)
-          cubes[x][y].scale.z = result;
+
+          if (options.mode === Modes.Original) cubes[x][y].scale.z = result;
+          if (options.mode === Modes.Position) cubes[x][y].position.y = result;
 
           const newColor = new THREE.Color(baseColor.getHex())
           const absFraction = Math.sin(distanceFraction + relativeDelta);

@@ -40,7 +40,18 @@ export default (reconstruct, blocks, controls, options) => {
       stiffnessOutput.innerHTML = value;
       options.stiffness = 1 / value;
     }
-
+    
+    var ambientLightSlider = document.getElementById("ambient-light-slider");
+    var ambientLightOutput = document.getElementById("ambient-light-output");
+    var ambientLightSliderValue = ambientLightSlider.value / 100;
+    ambientLightOutput.innerHTML = ambientLightSliderValue;
+    options.changeAmbientLight({ intensity: ambientLightSliderValue });
+    
+    ambientLightSlider.oninput = function () {
+      var value = this.value / 100;
+      ambientLightOutput.innerHTML = value;
+      options.changeAmbientLight({intensity: value});
+    }
 
     var cycleColorsCheckbox = document.getElementById("cycle-colors-checkbox");
     options.cycleColors = cycleColorsCheckbox.checked;
@@ -54,6 +65,14 @@ export default (reconstruct, blocks, controls, options) => {
 
     autoRotateCheckbox.onclick = function () {
       controls.autoRotate = autoRotateCheckbox.checked;
+    }
+
+    var modePicker = document.getElementById("mode-picker");
+    options.mode = parseInt(modePicker.value);
+
+    modePicker.onchange = function () {
+      options.mode = parseInt(modePicker.value);
+      options.resetSize(modePicker.value);
     }
 
     var slidersHideTimeout;
